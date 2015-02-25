@@ -5,6 +5,8 @@ from os import path, remove, rename, makedirs
 from Bio import SeqIO
 from Bio.SeqUtils import GC
 
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
 
@@ -12,10 +14,9 @@ def relative_path(relative_path_part):
     script_dir = path.dirname(__file__)
     return path.join(script_dir, relative_path_part)
 
-
 DEFAULT_INPUT = list(map(relative_path, ['../../resource/hw1/test.fastq']))
 
-RESULT_PATH = relative_path('../../resource/hw1/result')
+RESULT_PATH = relative_path('../../results/hw1')
 
 
 def result_file(filename):
