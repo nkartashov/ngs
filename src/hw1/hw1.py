@@ -1,3 +1,4 @@
+#!/usr/bin/python
 __author__ = 'nikita_kartashov'
 
 from sys import argv
