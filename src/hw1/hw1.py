@@ -13,7 +13,7 @@ def relative_path(relative_path_part):
     return path.join(script_dir, relative_path_part)
 
 
-DEFAULT_INPUT = list(map(relative_path, ['../../resource/hw1/test3.fastq']))
+DEFAULT_INPUT = list(map(relative_path, ['../../resource/hw1/test.fastq']))
 
 RESULT_PATH = relative_path('../../resource/hw1/result')
 
@@ -100,10 +100,11 @@ if __name__ == '__main__':
         argv.extend(DEFAULT_INPUT)
 
     for filename in argv:
-        preprocess_file(filename)
+        # preprocess_file(filename)
         with open(filename) as input_file:
-            records = list(get_records(input_file))
+            records = get_records(input_file)
             get_gc_content(records)
+            records = get_records(input_file)
             get_quality_distribution(records)
 
 
