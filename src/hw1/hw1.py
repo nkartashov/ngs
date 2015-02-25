@@ -90,6 +90,7 @@ def get_quality_distribution(records):
     plt.plot(range(0, len(probabilities)), probabilities)
     plt.ylabel('Error probability %')
     plt.xlabel('Base')
+    plt.axis([0, len(probabilities), 0, max(probabilities)])
     plt.savefig(result_file('nucleotide_error_probability.png'))
     plt.clf()
 
@@ -105,6 +106,7 @@ if __name__ == '__main__':
         with open(filename) as input_file:
             records = get_records(input_file)
             get_gc_content(records)
+        with open(filename) as input_file:
             records = get_records(input_file)
             get_quality_distribution(records)
 
