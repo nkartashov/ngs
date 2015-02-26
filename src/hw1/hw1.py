@@ -15,7 +15,7 @@ def relative_path(relative_path_part):
     script_dir = path.dirname(__file__)
     return path.join(script_dir, relative_path_part)
 
-DEFAULT_INPUT = list(map(relative_path, ['../../resource/hw1/test.fastq']))
+DEFAULT_INPUT = list(map(relative_path, ['../../resource/hw1/test3.fastq']))
 
 RESULT_PATH = relative_path('../../results/hw1')
 
@@ -83,11 +83,17 @@ def combine_two_scores(old, new):
 def score_to_probabilites(scores):
     return list(10 ** ((-score) * 1.0 / 10 + 2) for score in scores)
 
+MAX_READ_LENGTH = 2000
 
 def get_quality_distribution(records):
-    qualities = map(get_record_quality, records)
-    mean_scores = reduce(combine_two_scores, qualities, [])
-    probabilities = score_to_probabilites(mean_scores)
+    mean_qualities = [0 for _ in xrange(MAX_READ_LENGTH)]
+    real_max_read_length = 0
+    for quality in (get_record_quality(r) for r in records):
+        for i, q in enumerate(quality):
+            mean_qualities[i] = (mean_qualities[i] + q) * 1.0 / 2
+        real_max_read_length = max(len(quality), real_max_read_length)
+    mean_qualities = mean_qualities[:real_max_read_length]
+    probabilities = score_to_probabilites(mean_qualities)
     plt.plot(range(0, len(probabilities)), probabilities)
     plt.ylabel('Error probability %')
     plt.xlabel('Base')
@@ -103,17 +109,10 @@ if __name__ == '__main__':
         argv.extend(DEFAULT_INPUT)
 
     for filename in argv:
-        # preprocess_file(filename)
+        preprocess_file(filename)
         with open(filename) as input_file:
             records = get_records(input_file)
             get_gc_content(records)
         with open(filename) as input_file:
             records = get_records(input_file)
             get_quality_distribution(records)
-
-
-
-
-
-
-
