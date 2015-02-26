@@ -7,6 +7,7 @@ from Bio import SeqIO
 from Bio.SeqUtils import GC
 
 import matplotlib
+
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
@@ -14,6 +15,7 @@ import matplotlib.pyplot as plt
 def relative_path(relative_path_part):
     script_dir = path.dirname(__file__)
     return path.join(script_dir, relative_path_part)
+
 
 DEFAULT_INPUT = list(map(relative_path, ['../../resource/hw1/test3.fastq']))
 
@@ -83,16 +85,21 @@ def combine_two_scores(old, new):
 def score_to_probabilites(scores):
     return list(10 ** ((-score) * 1.0 / 10 + 2) for score in scores)
 
+
 MAX_READ_LENGTH = 2000
+
 
 def get_quality_distribution(records):
     mean_qualities = [0 for _ in xrange(MAX_READ_LENGTH)]
     real_max_read_length = 0
+    reads = 0
     for quality in (get_record_quality(r) for r in records):
         for i, q in enumerate(quality):
-            mean_qualities[i] = (mean_qualities[i] + q) * 1.0 / 2
+            mean_qualities[i] += q
         real_max_read_length = max(len(quality), real_max_read_length)
+        reads += 1
     mean_qualities = mean_qualities[:real_max_read_length]
+    mean_qualities = [q * 1.0 / reads for q in mean_qualities]
     probabilities = score_to_probabilites(mean_qualities)
     plt.plot(range(0, len(probabilities)), probabilities)
     plt.ylabel('Error probability %')
@@ -100,6 +107,7 @@ def get_quality_distribution(records):
     plt.axis([0, len(probabilities), 0, max(probabilities)])
     plt.savefig(result_file('nucleotide_error_probability.png'))
     plt.clf()
+
 
 if __name__ == '__main__':
     make_result_dir()
