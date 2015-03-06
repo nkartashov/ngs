@@ -102,7 +102,7 @@ def get_quality_distribution(records):
     mean_qualities = [q * 1.0 / reads for q in mean_qualities]
     probabilities = score_to_probabilites(mean_qualities)
     plt.plot(range(0, len(probabilities)), probabilities)
-    plt.ylabel('Error probability %')
+    plt.ylabel('Error probability')
     plt.xlabel('Base')
     plt.axis([0, len(probabilities), 0, max(probabilities)])
     plt.savefig(result_file('nucleotide_error_probability.png'))
