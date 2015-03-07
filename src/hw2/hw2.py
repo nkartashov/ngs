@@ -42,7 +42,6 @@ def get_genome_coverage(bam):
     for i in xrange(len(coverage)):
         left = i * AVERAGE_STEP
         right = left + AVERAGE_STEP
-        print("[{0}, {1}]".format(left, right))
         for reference in bam.references:
             coverage[i] += bam.count(reference=reference, start=left, end=right)
         coverage[i] = coverage[i] * 1.0 / AVERAGE_STEP
