@@ -9,6 +9,9 @@ import matplotlib
 
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
+import numpy as np
+from scipy import stats
+import math
 
 
 def relative_path(relative_path_part):
@@ -53,6 +56,50 @@ def get_genome_coverage(bam):
     plt.clf()
 
 
+MAX_INSERTION_SIZE = 1000
+
+
+def weighted_sd(values, weights):
+    """
+    Return the weighted average and standard deviation.
+
+    values, weights -- Numpy ndarrays with the same shape.
+    """
+    average = np.average(values, weights=weights)
+    variance = np.average((values - average) ** 2, weights=weights)  # Fast and numerically precise
+    return math.sqrt(variance)
+
+
+def get_insertion_size(bam):
+    insertion_sizes = [0 for _ in xrange(MAX_INSERTION_SIZE)]
+
+    for read in bam.fetch():
+        if read.is_proper_pair and read.is_read1:
+            insertion_sizes[abs(read.tlen)] += 1
+
+    real_length = 0
+    for i, size in enumerate(insertion_sizes):
+        if size != 0:
+            real_length = max(real_length, i)
+    insertion_sizes = insertion_sizes[:real_length]
+    sizes = [(i, number) for i, number in enumerate(insertion_sizes) if number != 0]
+    sizes, weights = zip(*sizes)
+    mean = np.average(sizes, weights=weights)
+    sd = weighted_sd(sizes, weights=weights)
+    quantiles = stats.norm.interval(0.95, loc=mean, scale=sd)
+    print("IS mean: {0}\nIS sd: {1}".format(mean, sd))
+    max_insertion_size = max(insertion_sizes)
+    plt.plot(range(0, len(insertion_sizes)), insertion_sizes)
+    plt.plot([mean, mean], [0, max_insertion_size], 'r-')
+    for quantile in quantiles:
+        plt.plot([quantile, quantile], [0, max_insertion_size], 'k-')
+    plt.ylabel('Reads')
+    plt.xlabel('Insertion size, base pairs')
+    plt.axis([0, len(insertion_sizes), 0, max_insertion_size])
+    plt.savefig(result_file('insertion_size.png'))
+    plt.clf()
+
+
 if __name__ == '__main__':
     if len(argv) < 3:
         print("No paths to BAM files")
@@ -66,4 +113,4 @@ if __name__ == '__main__':
         if mode:
             get_genome_coverage(bamfile)
         else:
-            pass
+            get_insertion_size(bamfile)
