@@ -13,6 +13,8 @@ import numpy as np
 from scipy import stats
 import math
 
+from Bio import SeqIO
+
 
 def relative_path(relative_path_part):
     script_dir = path.dirname(__file__)
@@ -107,13 +109,32 @@ def get_insertion_size(bam):
 def get_mismatch_frequencies(bam):
     mismatches = {"A": {"C": 0, "T": 0, "G": 0},
                   "C": {"A": 0, "T": 0, "G": 0},
-                  "G": {"C": 0, "T": 0, "A": 0},
-                  "T": {"C": 0, "A": 0, "G": 0}}
+                  "G": {"A": 0, "C": 0, "T": 0},
+                  "T": {"A": 0, "C": 0, "G": 0}}
+
+    reference_genome = SeqIO.parse(open("../../resource/hw2/MG1655-K12.fasta"), 'fasta')
+    genome = ""
+    for fasta in reference_genome:
+        genome = str(fasta.seq)
 
     for read in bam.fetch():
-        print(read)
+        reference_sequence = ""
+        for block in read.get_blocks():
+            reference_sequence += genome[block[0]: block[1]]
 
-    print(mismatches)
+        read_sequence = read.query_alignment_sequence
+        for i in xrange(len(reference_sequence)):
+            if read_sequence[i] != reference_sequence[i] and \
+               reference_sequence[i] != "N" and \
+               read_sequence[i] != "N":
+                mismatches[reference_sequence[i]][read_sequence[i]] += 1
+
+    def pretty():
+        print("*\t{0}\t{1}\t{2}".format(mismatches["A"]["C"], mismatches["A"]["T"], mismatches["A"]["G"]))
+        print("{0}\t*\t{1}\t{2}".format(mismatches["C"]["A"], mismatches["C"]["T"], mismatches["C"]["G"]))
+        print("{0}\t{1}\t*\t{2}".format(mismatches["G"]["A"], mismatches["G"]["C"], mismatches["G"]["T"]))
+        print("{0}\t{1}\t{2}\t*".format(mismatches["T"]["A"], mismatches["T"]["C"], mismatches["T"]["G"]))
+    pretty()
 
 
 if __name__ == '__main__':
