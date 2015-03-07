@@ -42,12 +42,16 @@ def get_genome_coverage(bam):
     length = get_reference_length(bam)
     regions = int(ceil(length * 1.0 / AVERAGE_STEP))
     coverage = [0 for _ in xrange(regions)]
+    covered_regions = 0
     for i in xrange(len(coverage)):
         left = i * AVERAGE_STEP
         right = left + AVERAGE_STEP
         for reference in bam.references:
             coverage[i] += bam.count(reference=reference, start=left, end=right)
         coverage[i] = coverage[i] * 1.0 / AVERAGE_STEP
+        if coverage[i] > 0:
+            covered_regions += 1
+    print("Covered genome rate: {0}".format(covered_regions * AVERAGE_STEP * 1.0 / length))
     plt.plot(range(0, len(coverage)), coverage)
     plt.ylabel('Coverage')
     plt.xlabel('Base x1000')
@@ -100,6 +104,18 @@ def get_insertion_size(bam):
     plt.clf()
 
 
+def get_mismatch_frequencies(bam):
+    mismatches = {"A": {"C": 0, "T": 0, "G": 0},
+                  "C": {"A": 0, "T": 0, "G": 0},
+                  "G": {"C": 0, "T": 0, "A": 0},
+                  "T": {"C": 0, "A": 0, "G": 0}}
+
+    for read in bam.fetch():
+        print(read)
+
+    print(mismatches)
+
+
 if __name__ == '__main__':
     if len(argv) < 3:
         print("No paths to BAM files")
@@ -108,9 +124,12 @@ if __name__ == '__main__':
     make_result_dir()
 
     bam_path = argv[1]
-    mode = argv[2] == "1"
+    mode = int(argv[2])
+    tasks = {1: get_genome_coverage,
+             2: get_insertion_size,
+             3: get_mismatch_frequencies}
+    if 1 > mode >= 3:
+        print("Invalid task (valid 1-3)")
+        exit(2)
     with pysam.AlignmentFile(bam_path, "rb") as bamfile:
-        if mode:
-            get_genome_coverage(bamfile)
-        else:
-            get_insertion_size(bamfile)
+        tasks[mode](bamfile)
