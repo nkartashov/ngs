@@ -96,9 +96,9 @@ def get_indel_distribution(bam, prefix):
 
 def get_info_from_bam_reference(bam, reference_file, prefix=BWA_PREFIX):
     reference = (list(SeqIO.parse(reference_file, 'fasta'))[0]).seq
-    # get_genome_coverage(bam, prefix)
+    get_genome_coverage(bam, prefix)
     # get homopolymer stuff
-    # get_indel_distribution(bam, prefix)
+    get_indel_distribution(bam, prefix)
     get_quality_insertions(bam, prefix)
     get_quality_mismatches(bam, reference, prefix)
     get_mismatch_frequencies(bam, reference, prefix)
