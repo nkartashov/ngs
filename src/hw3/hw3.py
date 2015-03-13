@@ -68,30 +68,92 @@ def get_genome_coverage(bam, prefix):
 
 MAX_INDEL = 200
 
+INSERTION = 1
+DELETION = 2
+MISMATCH = 8
+
 
 def get_indel_distribution(bam, prefix):
     indel_lengths = [0 for _ in xrange(MAX_INDEL)]
     max_indel = 0
 
-    for column in bam.pileup():
-        for read in column.pileups:
-            indel_lengths[abs(read.indel)] += 1
-            max_indel = max(max_indel, read.indel)
+    for read in bam.fetch():
+        for t, length in read.cigartuples:
+            if t == INSERTION or t == DELETION:
+                indel_lengths[length] += 1
+                max_indel = max(max_indel, length)
 
     indel_lengths = indel_lengths[1:max_indel]
     plt.plot(range(1, max_indel), indel_lengths)
     plt.ylabel('Indel length')
     plt.xlabel('Reads')
     plt.axis([1, max_indel, 0, max(indel_lengths)])
-    plt.savefig(result_file(prefix + 'indel_distrubution.png'))
+    plt.savefig(result_file(prefix + 'indel_distribution.png'))
     plt.clf()
 
 
 def get_info_from_bam_reference(bam, reference_file, prefix=BWA_PREFIX):
     reference = SeqIO.parse(reference_file, 'fasta')
     # get_genome_coverage(bam, prefix)
-    get_indel_distribution(bam, prefix)
+    # get homopolymer stuff
+    # get_indel_distribution(bam, prefix)
+    get_quality_insertions(bam, prefix)
+    get_quality_mismatches(bam, reference, prefix)
+    pass
 
+
+MAX_QUALITY = 50
+
+
+def get_quality_insertions(bam, prefix):
+    insertions_quality = [0 for _ in xrange(MAX_QUALITY)]
+    max_quality = 0
+    for read in bam.fetch():
+        index = 0
+        qualities = read.query_qualities
+        for t, length in read.cigartuples:
+            if t == INSERTION:
+                for real_index in xrange(index, index + length):
+                    insertions_quality[qualities[real_index]] += 1
+                    max_quality = max(max_quality, qualities[real_index])
+            if t == DELETION:
+                continue
+            index += length
+    insertions_quality = insertions_quality[:max_quality]
+    plt.plot(range(0, max_quality), insertions_quality)
+    plt.ylabel('Insertions')
+    plt.xlabel('Quality')
+    plt.axis([0, max_quality, 0, max(insertions_quality)])
+    plt.savefig(result_file(prefix + 'insertion_quality_distribution.png'))
+    plt.clf()
+
+
+def get_quality_mismatches(bam, reference, prefix):
+    genome = str(list(reference)[0])
+    mismatch_quality = [0 for _ in xrange(MAX_QUALITY)]
+    max_quality = 0
+    for read in bam.fetch():
+        reference_sequence = ""
+        for start, end in read.get_blocks():
+            reference_sequence += genome[start: end]
+        read_sequence = read.query_alignment_sequence
+        read_quality = read.query_alignment_qualities
+        for i in xrange(len(reference_sequence)):
+            if read_sequence[i] != reference_sequence[i] and \
+                            reference_sequence[i] != "N" and \
+                            read_sequence[i] != "N":
+                mismatch_quality[read_quality[i]] += 1
+                max_quality = max(max_quality, read_quality[i])
+    mismatch_quality = mismatch_quality[:max_quality]
+    plt.plot(range(0, max_quality), mismatch_quality)
+    plt.ylabel('Mismatches')
+    plt.xlabel('Quality')
+    plt.axis([0, max_quality, 0, max(mismatch_quality)])
+    plt.savefig(result_file(prefix + 'mismatch_quality_distribution.png'))
+    plt.clf()
+
+
+def get_mismatch_frequencies(bam, reference, prefix):
     pass
 
 

@@ -119,8 +119,8 @@ def get_mismatch_frequencies(bam):
 
     for read in bam.fetch():
         reference_sequence = ""
-        for block in read.get_blocks():
-            reference_sequence += genome[block[0]: block[1]]
+        for start, end in read.get_blocks():
+            reference_sequence += genome[start: end]
 
         read_sequence = read.query_alignment_sequence
         for i in xrange(len(reference_sequence)):
@@ -129,12 +129,10 @@ def get_mismatch_frequencies(bam):
                read_sequence[i] != "N":
                 mismatches[reference_sequence[i]][read_sequence[i]] += 1
 
-    def pretty():
-        print("*\t{0}\t{1}\t{2}".format(mismatches["A"]["C"], mismatches["A"]["T"], mismatches["A"]["G"]))
-        print("{0}\t*\t{1}\t{2}".format(mismatches["C"]["A"], mismatches["C"]["T"], mismatches["C"]["G"]))
-        print("{0}\t{1}\t*\t{2}".format(mismatches["G"]["A"], mismatches["G"]["C"], mismatches["G"]["T"]))
-        print("{0}\t{1}\t{2}\t*".format(mismatches["T"]["A"], mismatches["T"]["C"], mismatches["T"]["G"]))
-    pretty()
+    print("*\t{0}\t{1}\t{2}".format(mismatches["A"]["C"], mismatches["A"]["T"], mismatches["A"]["G"]))
+    print("{0}\t*\t{1}\t{2}".format(mismatches["C"]["A"], mismatches["C"]["T"], mismatches["C"]["G"]))
+    print("{0}\t{1}\t*\t{2}".format(mismatches["G"]["A"], mismatches["G"]["C"], mismatches["G"]["T"]))
+    print("{0}\t{1}\t{2}\t*".format(mismatches["T"]["A"], mismatches["T"]["C"], mismatches["T"]["G"]))
 
 
 if __name__ == '__main__':
