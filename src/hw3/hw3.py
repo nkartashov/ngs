@@ -66,9 +66,31 @@ def get_genome_coverage(bam, prefix):
     plt.clf()
 
 
+MAX_INDEL = 200
+
+
+def get_indel_distribution(bam, prefix):
+    indel_lengths = [0 for _ in xrange(MAX_INDEL)]
+    max_indel = 0
+
+    for column in bam.pileup():
+        for read in column.pileups:
+            indel_lengths[abs(read.indel)] += 1
+            max_indel = max(max_indel, read.indel)
+
+    indel_lengths = indel_lengths[1:max_indel]
+    plt.plot(range(1, max_indel), indel_lengths)
+    plt.ylabel('Indel length')
+    plt.xlabel('Reads')
+    plt.axis([1, max_indel, 0, max(indel_lengths)])
+    plt.savefig(result_file(prefix + 'indel_distrubution.png'))
+    plt.clf()
+
+
 def get_info_from_bam_reference(bam, reference_file, prefix=BWA_PREFIX):
     reference = SeqIO.parse(reference_file, 'fasta')
-    get_genome_coverage(bam, prefix)
+    # get_genome_coverage(bam, prefix)
+    get_indel_distribution(bam, prefix)
 
     pass
 
