@@ -68,8 +68,10 @@ def get_genome_coverage(bam, prefix):
 
 MAX_INDEL = 200
 
+MATCH = 0
 INSERTION = 1
 DELETION = 2
+SOFT_CLIPPED = 4
 MISMATCH = 8
 
 
@@ -93,13 +95,13 @@ def get_indel_distribution(bam, prefix):
 
 
 def get_info_from_bam_reference(bam, reference_file, prefix=BWA_PREFIX):
-    reference = SeqIO.parse(reference_file, 'fasta')
+    reference = (list(SeqIO.parse(reference_file, 'fasta'))[0]).seq
     # get_genome_coverage(bam, prefix)
     # get homopolymer stuff
     # get_indel_distribution(bam, prefix)
     get_quality_insertions(bam, prefix)
     get_quality_mismatches(bam, reference, prefix)
-    pass
+    get_mismatch_frequencies(bam, reference, prefix)
 
 
 MAX_QUALITY = 50
@@ -129,13 +131,12 @@ def get_quality_insertions(bam, prefix):
 
 
 def get_quality_mismatches(bam, reference, prefix):
-    genome = str(list(reference)[0])
     mismatch_quality = [0 for _ in xrange(MAX_QUALITY)]
     max_quality = 0
     for read in bam.fetch():
         reference_sequence = ""
         for start, end in read.get_blocks():
-            reference_sequence += genome[start: end]
+            reference_sequence += reference[start: end]
         read_sequence = read.query_alignment_sequence
         read_quality = read.query_alignment_qualities
         for i in xrange(len(reference_sequence)):
@@ -153,8 +154,50 @@ def get_quality_mismatches(bam, reference, prefix):
     plt.clf()
 
 
-def get_mismatch_frequencies(bam, reference, prefix):
-    pass
+NUCLEOTIDES = {'A', 'C', 'T', 'G'}
+
+
+def get_mismatch_frequencies(bam, reference_sequence, prefix):
+    mismatches = {"A": {"C": 0, "T": 0, "G": 0, None: 0},
+                  "C": {"A": 0, "T": 0, "G": 0, None: 0},
+                  "G": {"A": 0, "C": 0, "T": 0, None: 0},
+                  "T": {"A": 0, "C": 0, "G": 0, None: 0},
+                  None: {"A": 0, "C": 0, "G": 0, "T": 0}}
+
+    def filter_soft_clipped(cigar_tuples):
+        return list(filter(lambda (t, l): t != SOFT_CLIPPED, cigar_tuples))
+
+    for read in bam.fetch():
+        reference_index = read.reference_start
+        read_index = 0
+        read_sequence = read.query_alignment_sequence
+        for t, length in filter_soft_clipped(read.cigartuples):
+            if t == MATCH:
+                for i in xrange(length):
+                    if reference_sequence[reference_index + i] != read_sequence[read_index + i] and reference_sequence[
+                       reference_index + i] != "N" and read_sequence[read_index + i] != "N":
+                        mismatches[reference_sequence[reference_index + i]][read_sequence[read_index + i]] += 1
+                reference_index += length
+                read_index += length
+            if t == INSERTION:
+                for i in xrange(length):
+                    mismatches[None][read_sequence[read_index + i + 1]] += 1
+                read_index += length
+            if t == DELETION:
+                for i in xrange(length):
+                    mismatches[reference_sequence[reference_index + i + 1]][None] += 1
+                reference_index += length
+
+    print("*\t{0}\t{1}\t{2}\t{3}".
+          format(mismatches["A"]["C"], mismatches["A"]["T"], mismatches["A"]["G"], mismatches["A"][None]))
+    print("{0}\t*\t{1}\t{2}\t{3}".
+          format(mismatches["C"]["A"], mismatches["C"]["T"], mismatches["C"]["G"], mismatches["C"][None]))
+    print("{0}\t{1}\t*\t{2}\t{3}".
+          format(mismatches["G"]["A"], mismatches["G"]["C"], mismatches["G"]["T"], mismatches["G"][None]))
+    print("{0}\t{1}\t{2}\t*\t{3}".
+          format(mismatches["T"]["A"], mismatches["T"]["C"], mismatches["T"]["G"], mismatches["T"][None]))
+    print("{0}\t{1}\t{2}\t{3}\t*".
+          format(mismatches[None]["A"], mismatches[None]["C"], mismatches[None]["T"], mismatches[None]["G"]))
 
 
 if __name__ == '__main__':
